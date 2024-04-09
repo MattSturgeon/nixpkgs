@@ -182,6 +182,7 @@ let
   # Convenience attributes for instantitating package sets. Each of
   # these will instantiate a new version of allPackages.
   otherPackageSets = let
+    isNative = lib.systems.equals stdenv.hostPlatform stdenv.buildPlatform;
     mkPkgs = name: nixpkgsArgs: nixpkgsFun (nixpkgsArgs // {
       overlays = [
         (self': super': {
@@ -196,14 +197,14 @@ let
     # will refer to the "hello" package built for the ARM6-based
     # Raspberry Pi.
     pkgsCross = lib.mapAttrs (n: crossSystem:
-                              nixpkgsFun { inherit crossSystem; })
+                              nixpkgsFun { crossSystem = stdenv.hostPlatform.override crossSystem; })
                               lib.systems.examples;
 
     pkgsLLVM = mkPkgs "pkgsLLVM" {
       # Bootstrap a cross stdenv using the LLVM toolchain.
       # This is currently not possible when compiling natively,
       # so we don't need to check hostPlatform != buildPlatform.
-      crossSystem = stdenv.hostPlatform // {
+      crossSystem = stdenv.hostPlatform.override {
         useLLVM = true;
         linker = "lld";
       };
@@ -213,7 +214,7 @@ let
       # Bootstrap a cross stdenv using LLVM libc.
       # This is currently not possible when compiling natively,
       # so we don't need to check hostPlatform != buildPlatform.
-      crossSystem = stdenv.hostPlatform // {
+      crossSystem = stdenv.hostPlatform.override {
         config = lib.systems.parse.tripleFromSystem (makeLLVMParsedPlatform stdenv.hostPlatform.parsed);
         libc = "llvm";
       };
@@ -223,7 +224,7 @@ let
       # Bootstrap a cross stdenv using the Aro C compiler.
       # This is currently not possible when compiling natively,
       # so we don't need to check hostPlatform != buildPlatform.
-      crossSystem = stdenv.hostPlatform // {
+      crossSystem = stdenv.hostPlatform.override {
         useArocc = true;
         linker = "lld";
       };
@@ -233,7 +234,7 @@ let
       # Bootstrap a cross stdenv using the Zig toolchain.
       # This is currently not possible when compiling natively,
       # so we don't need to check hostPlatform != buildPlatform.
-      crossSystem = stdenv.hostPlatform // {
+      crossSystem = stdenv.hostPlatform.override {
         useZig = true;
         linker = "lld";
       };
@@ -243,8 +244,7 @@ let
     # default GNU libc on Linux systems. Non-Linux systems are not
     # supported. 32-bit is also not supported.
     pkgsMusl = if stdenv.hostPlatform.isLinux && stdenv.buildPlatform.is64bit then mkPkgs "pkgsMusl" {
-      ${if stdenv.hostPlatform == stdenv.buildPlatform
-        then "localSystem" else "crossSystem"} = {
+      ${if isNative then "localSystem" else "crossSystem"} = stdenv.hostPlatform.override {
         config = lib.systems.parse.tripleFromSystem (makeMuslParsedPlatform stdenv.hostPlatform.parsed);
       };
     } else throw "Musl libc only supports 64-bit Linux systems.";
@@ -252,8 +252,7 @@ let
     # All packages built for i686 Linux.
     # Used by wine, firefox with debugging version of Flash, ...
     pkgsi686Linux = if stdenv.hostPlatform.isLinux && stdenv.hostPlatform.isx86 then mkPkgs "pkgsi686Linux" {
-      ${if stdenv.hostPlatform == stdenv.buildPlatform
-        then "localSystem" else "crossSystem"} = {
+      ${if isNative then "localSystem" else "crossSystem"} = stdenv.hostPlatform.override {
         config = lib.systems.parse.tripleFromSystem (stdenv.hostPlatform.parsed // {
           cpu = lib.systems.parse.cpuTypes.i686;
         });
@@ -262,35 +261,33 @@ let
 
     # x86_64-darwin packages for aarch64-darwin users to use with Rosetta for incompatible packages
     pkgsx86_64Darwin = if stdenv.hostPlatform.isDarwin then mkPkgs "pkgsx86_64Darwin" {
-      localSystem = {
-        config = lib.systems.parse.tripleFromSystem (stdenv.hostPlatform.parsed // {
+      ${if isNative then "localSystem" else "crossSystem"} = stdenv.hostPlatform.override {
+        config = lib.systems.parse.tripleFromSystem (stdenv.buildPlatform.parsed // {
           cpu = lib.systems.parse.cpuTypes.x86_64;
         });
       };
     } else throw "x86_64 Darwin package set can only be used on Darwin systems.";
 
     # If already linux: the same package set unaltered
-    # Otherwise, return a natively built linux package set for the current cpu architecture string.
+    # Otherwise, return a linux package set for the current cpu architecture string.
+    # ABI and other details will be set to the default for the cpu/os pair.
     pkgsLinux =
       if stdenv.hostPlatform.isLinux
       then self
       else mkPkgs "pkgsLinux" {
-        localSystem = lib.systems.elaborate "${stdenv.hostPlatform.parsed.cpu.name}-linux";
+        ${if isNative then "localSystem" else "crossSystem"} = lib.systems.elaborate "${stdenv.hostPlatform.parsed.cpu.name}-linux";
       };
 
     # Fully static packages.
     # Currently uses Musl on Linux (couldn’t get static glibc to work).
     pkgsStatic = mkPkgs "pkgsStatic" {
-      crossSystem = {
+      crossSystem = stdenv.hostPlatform.override ({
         isStatic = true;
-        config = lib.systems.parse.tripleFromSystem (
-          if stdenv.hostPlatform.isLinux
-          then makeMuslParsedPlatform stdenv.hostPlatform.parsed
-          else stdenv.hostPlatform.parsed
-        );
-        gcc = lib.optionalAttrs (stdenv.hostPlatform.system == "powerpc64-linux") { abi = "elfv2"; } //
-          stdenv.hostPlatform.gcc or {};
-      };
+      } // lib.optionalAttrs stdenv.hostPlatform.isLinux {
+        config = lib.systems.parse.tripleFromSystem (makeMuslParsedPlatform stdenv.hostPlatform.parsed);
+      } // lib.optionalAttrs (stdenv.hostPlatform.system == "powerpc64-linux") {
+        gcc = { abi = "elfv2"; } // stdenv.hostPlatform.gcc or {};
+      });
     };
 
     pkgsExtraHardening = mkPkgs "pkgsExtraHardening" {
