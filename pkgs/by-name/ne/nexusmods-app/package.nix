@@ -50,13 +50,13 @@ buildDotnetModule rec {
   ];
 
   makeWrapperArgs = [
-    "--prefix PATH : ${lib.makeBinPath [ desktop-file-utils ]}"
     "--set APPIMAGE $out/bin/${meta.mainProgram}" # Make associating with nxm links work on Linux
   ];
 
   propagatedBuildInputs = [ (_7zz.override { inherit enableUnfree; }) ];
 
   runtimeDeps = [
+    desktop-file-utils
     fontconfig
     libICE
     libSM
