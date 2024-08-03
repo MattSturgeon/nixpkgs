@@ -80,7 +80,7 @@ let
           nativeBuildInputs = old.nativeBuildInputs ++ [
             nix
             cacert
-            (nuget-to-nix.override { dotnet-sdk = dotnetSdk; })
+            nuget-to-nix
           ];
           postPatch = old.postPatch or "" + ''
             xmlstarlet ed \

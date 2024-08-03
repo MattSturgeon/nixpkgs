@@ -1,5 +1,6 @@
 {
   _7zz,
+  avalonia,
   buildDotnetModule,
   copyDesktopItems,
   desktop-file-utils,
@@ -34,6 +35,8 @@ buildDotnetModule rec {
   projectFile = "src/NexusMods.App/NexusMods.App.csproj";
   testProjectFile = "NexusMods.App.sln";
 
+  buildInputs = [ avalonia ];
+
   nativeBuildInputs = [ copyDesktopItems ];
 
   nugetDeps = ./deps.nix;
@@ -56,13 +59,6 @@ buildDotnetModule rec {
   makeWrapperArgs = [
     "--prefix PATH : ${lib.makeBinPath [ desktop-file-utils ]}"
     "--set APPIMAGE ${placeholder "out"}/bin/${meta.mainProgram}" # Make associating with nxm links work on Linux
-  ];
-
-  runtimeDeps = [
-    fontconfig
-    libICE
-    libSM
-    libX11
   ];
 
   executables = [ meta.mainProgram ];

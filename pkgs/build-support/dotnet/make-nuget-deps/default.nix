@@ -5,15 +5,19 @@
 , unzip
 , patchNupkgs
 , nugetPackageHook
+, callPackage
 }:
-lib.makeOverridable(
+let
+  overrides = callPackage ./overrides {};
+in lib.makeOverridable(
   { name
   , nugetDeps ? import sourceFile
   , sourceFile ? null
   , installable ? false
   }:
   (symlinkJoin {
-    name = "${name}-nuget-deps";
+    name
+    = "${name}-nuget-deps";
     paths = nugetDeps {
       fetchNuGet =
         { pname
@@ -21,6 +25,7 @@ lib.makeOverridable(
         , sha256 ? ""
         , hash ? ""
         , url ? "https://www.nuget.org/api/v2/package/${pname}/${version}" }:
+        overrides.${pname} or lib.id (
         stdenvNoCC.mkDerivation rec {
           inherit pname version;
 
@@ -53,10 +58,12 @@ lib.makeOverridable(
           '';
 
           installPhase = ''
+            runHook preInstall
             dir=$out/share/nuget/packages/${lib.toLower pname}/${lib.toLower version}
             mkdir -p $dir
             cp -r . $dir
             echo {} > "$dir"/.nupkg.metadata
+            runHook postInstall
           '';
 
           preFixup = ''
@@ -64,7 +71,7 @@ lib.makeOverridable(
           '';
 
           createInstallableNugetSource = installable;
-        };
+        });
     };
   }) // {
     inherit sourceFile;

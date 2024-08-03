@@ -235,7 +235,7 @@ let
                     toString nugetDepsFile
                   else
                     ''$(mktemp -t "${pname}-deps-XXXXXX.nix")'';
-                nugetToNix = (nuget-to-nix.override { inherit dotnet-sdk; });
+                nugetToNix = nuget-to-nix;
               };
 
             in
