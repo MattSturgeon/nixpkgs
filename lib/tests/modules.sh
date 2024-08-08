@@ -278,6 +278,11 @@ checkConfigError 'is not of type `boolean' config.submodule.config ./declare-sub
 checkConfigError "In module ..*define-submoduleWith-shorthand.nix., you're trying to define a value of type \`bool'\n\s*rather than an attribute set for the option" config.submodule.config ./declare-submoduleWith-noshorthand.nix ./define-submoduleWith-shorthand.nix
 checkConfigOutput '^true$' config.submodule.config ./declare-submoduleWith-noshorthand.nix ./define-submoduleWith-noshorthand.nix
 
+## definedOptionsOnly should behave as expected
+checkConfigOutput '^false$' config.definedOpt1 ./definedOptionsOnly.nix
+checkConfigOutput '^true$' config.definedOpt2 ./definedOptionsOnly.nix
+checkConfigError "" config.undefinedOpt ./definedOptionsOnly.nix
+
 ## submoduleWith should merge all modules in one swoop
 checkConfigOutput '^true$' config.submodule.inner ./declare-submoduleWith-modules.nix
 checkConfigOutput '^true$' config.submodule.outer ./declare-submoduleWith-modules.nix

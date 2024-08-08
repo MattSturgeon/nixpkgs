@@ -74,6 +74,35 @@ let
           decls
       ));
 
+  # Private filtering function used by evalModules
+  # TODO: Consider moving something like this to `lib.attrsets`?
+  filterAttrsRecursiveWith =
+    {
+      continueRecursing ? _: true,
+      leafPredicate ? _: _: true,
+      branchPredicate ? _: _: true,
+    } @ args:
+    set:
+    lib.pipe set [
+      attrNames
+      (lib.concatMap (name:
+        let
+          value = set.${name};
+          filtered = filterAttrsRecursiveWith args value;
+        in
+          if isAttrs value && continueRecursing value then
+            lib.optional (branchPredicate name filtered) {
+              inherit name;
+              value = filtered;
+            }
+          else
+            lib.optional (leafPredicate name value) {
+              inherit name value;
+            }
+      ))
+      lib.listToAttrs
+    ];
+
   /* See https://nixos.org/manual/nixpkgs/unstable/#module-system-lib-evalModules
      or file://./../doc/module-system/module-system.chapter.md
 
@@ -202,6 +231,23 @@ let
             description = "Whether to check whether all option definitions have matching declarations.";
           };
 
+          _module.definedOptionsOnly = mkOption {
+            type = types.bool;
+            internal = true;
+            default = false;
+            description = ''
+              Whether to merge only defined options into the final `config` value.
+              I.e. options that either have a **default** value or **at least one** definition,
+              such that `isDefined` is true.
+
+              By default, undefined options are merged in but will throw a _"used but not defined"_ error if
+              their value is evaluated.
+
+              This option does not affect merging of freeform definitions that is done when `freeformType` is
+              non-null.
+            '';
+          };
+
           _module.freeformType = mkOption {
             type = types.nullOr types.optionType;
             internal = true;
@@ -242,32 +288,49 @@ let
           class
           (specialArgs.modulesPath or "")
           (regularModules ++ [ internalModule ])
+          # FIXME: passing config here causes infinite recursion,
+          # because we change its shape when filtering for defined options
           ({ inherit lib options config specialArgs; } // specialArgs);
         in mergeModules prefix (reverseList collected);
 
       options = merged.matchedOptions;
 
-      config =
+      # For definitions that have an associated option, take the option values
+      # If _module.definedOptionsOnly is enabled, we first filter for defined options
+      declaredConfig =
         let
+          isNotOption = v: ! isOption v;
 
-          # For definitions that have an associated option
-          declaredConfig = mapAttrsRecursiveCond (v: ! isOption v) (_: v: v.value) options;
+          options' =
+            # FIXME: depending on `options` here causes infinite recursion,
+            # because we change `config`'s shape, which `options` depends on...
+            if options._module.definedOptionsOnly.value then
+              filterAttrsRecursiveWith {
+                continueRecursing = isNotOption;
+                leafPredicate = n: opt: opt.isDefined;
+                branchPredicate = n: set: set != { };
+              } options
+            else
+              options;
+        in
+          mapAttrsRecursiveCond isNotOption (_: v: v.value) options';
 
-          # If freeformType is set, this is for definitions that don't have an associated option
-          freeformConfig =
-            let
-              defs = map (def: {
-                file = def.file;
-                value = setAttrByPath def.prefix def.value;
-              }) merged.unmatchedDefns;
-            in if defs == [] then {}
-            else declaredConfig._module.freeformType.merge prefix defs;
+      # If freeformType is set, this is for definitions that don't have an associated option
+      freeformConfig =
+        let
+          defs = map (def: {
+            file = def.file;
+            value = setAttrByPath def.prefix def.value;
+          }) merged.unmatchedDefns;
+        in if defs == [] then {}
+        else declaredConfig._module.freeformType.merge prefix defs;
 
-        in if declaredConfig._module.freeformType == null then declaredConfig
-          # Because all definitions that had an associated option ended in
-          # declaredConfig, freeformConfig can only contain the non-option
-          # paths, meaning recursiveUpdate will never override any value
-          else recursiveUpdate freeformConfig declaredConfig;
+      config =
+        if declaredConfig._module.freeformType == null then declaredConfig
+        # Because all definitions that had an associated option ended in
+        # declaredConfig, freeformConfig can only contain the non-option
+        # paths, meaning recursiveUpdate will never override any value
+        else recursiveUpdate freeformConfig declaredConfig;
 
       checkUnmatched =
         if config._module.check && config._module.freeformType == null && merged.unmatchedDefns != [] then
