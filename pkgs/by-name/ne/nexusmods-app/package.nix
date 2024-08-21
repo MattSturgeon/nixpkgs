@@ -54,9 +54,12 @@ buildDotnetModule rec {
   '';
 
   makeWrapperArgs = [
-    "--prefix PATH : ${lib.makeBinPath [ desktop-file-utils ]}"
-    "--set APPIMAGE ${placeholder "out"}/bin/${meta.mainProgram}" # Make associating with nxm links work on Linux
+    "--prefix PATH : ${lib.makeBinPath runtimeInputs}"
+    # Make associating with nxm links work on Linux
+    "--set APPIMAGE ${placeholder "out"}/bin/${meta.mainProgram}"
   ];
+
+  runtimeInputs = [ desktop-file-utils ];
 
   runtimeDeps = [
     fontconfig
