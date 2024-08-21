@@ -3,6 +3,7 @@
   buildDotnetModule,
   copyDesktopItems,
   desktop-file-utils,
+  dos2unix,
   dotnetCorePackages,
   fetchFromGitHub,
   fontconfig,
@@ -10,6 +11,16 @@
   runCommand,
   pname ? "nexusmods-app",
 }:
+let
+  # From https://nexus-mods.github.io/NexusMods.App/developers/Contributing/#for-package-maintainers
+  constants = [
+    # Tell the app it is a distro package; affects wording in update prompts
+    "INSTALLATION_METHOD_PACKAGE_MANAGER"
+
+    # Don't include upstream's 7zz binary; we use the nixpkgs version
+    "NEXUSMODS_APP_USE_SYSTEM_EXTRACTOR"
+  ];
+in
 buildDotnetModule (finalAttrs: {
   inherit pname;
   version = "0.5.3";
@@ -22,6 +33,14 @@ buildDotnetModule (finalAttrs: {
     hash = "sha256-vy7gc/pS29gphkWM/KezZxXDVsD5DV02b/72pPh2Y2c=";
   };
 
+  patches = [
+    # Backport fix for NEXUSMODS_APP_USE_SYSTEM_EXTRACTOR
+    # From https://github.com/Nexus-Mods/NexusMods.App/pull/1919
+    ./0001-Fixed-Alias-USE_SYSTEM_EXTRACTOR-and-NEXUSMODS_APP_U.patch
+    ./0002-Fixed-Consider-additional-possible-system-7z-binarie.patch
+    ./0003-Removed-Alias-for-USE_SYSTEM_EXTRACTOR.patch
+  ];
+
   enableParallelBuilding = false;
 
   # If the whole solution is published, there seems to be a race condition where
@@ -32,20 +51,27 @@ buildDotnetModule (finalAttrs: {
   projectFile = "src/NexusMods.App/NexusMods.App.csproj";
   testProjectFile = "NexusMods.App.sln";
 
-  nativeBuildInputs = [ copyDesktopItems ];
+  nativeCheckInputs = [ _7zz ];
+
+  nativeBuildInputs = [
+    copyDesktopItems
+    # TODO: Remove when patch isn't needed
+    dos2unix
+  ];
 
   nugetDeps = ./deps.nix;
 
   dotnet-sdk = dotnetCorePackages.sdk_8_0;
   dotnet-runtime = dotnetCorePackages.runtime_8_0;
 
-  preConfigure = ''
-    substituteInPlace Directory.Build.props \
-      --replace '</PropertyGroup>' '<ErrorOnDuplicatePublishOutputFiles>false</ErrorOnDuplicatePublishOutputFiles></PropertyGroup>'
+  prePatch = ''
+    # TODO: Remove when patch isn't needed
+    dos2unix src/ArchiveManagement/NexusMods.FileExtractor/build/NexusMods.FileExtractor.targets
   '';
 
   postPatch = ''
-    ln --force --symbolic "${lib.getExe _7zz}" src/ArchiveManagement/NexusMods.FileExtractor/runtimes/linux-x64/native/7zz
+    # TODO: Remove when patch isn't needed
+    unix2dos src/ArchiveManagement/NexusMods.FileExtractor/build/NexusMods.FileExtractor.targets
 
     # for some reason these tests fail (intermittently?) with a zero timestamp
     touch tests/NexusMods.UI.Tests/WorkspaceSystem/*.verified.png
@@ -57,13 +83,27 @@ buildDotnetModule (finalAttrs: {
     "--set APPIMAGE ${placeholder "out"}/bin/NexusMods.App"
   ];
 
-  runtimeInputs = [ desktop-file-utils ];
+  runtimeInputs = [
+    _7zz
+    desktop-file-utils
+  ];
 
   executables = [ "NexusMods.App" ];
 
+  # FIXME: should some of these go in dotnetTestFlags and/or dotnetFlags?
+  dotnetBuildFlags = [
+    # From https://github.com/Nexus-Mods/NexusMods.App/blob/v0.5.3/src/NexusMods.App/app.pupnet.conf#L38
+    "--property:Version=${finalAttrs.version}"
+    "--property:TieredCompilation=true"
+    "--property:DefineConstants=${lib.strings.concatStringsSep "%3B" constants}"
+  ];
+
   doCheck = true;
 
-  dotnetTestFlags = [ "--environment=USER=nobody" ];
+  dotnetTestFlags = [
+    "--environment=USER=nobody"
+    "--property:DefineConstants=${lib.strings.concatStringsSep "%3B" constants}"
+  ];
 
   testFilters = [
     "Category!=Disabled"

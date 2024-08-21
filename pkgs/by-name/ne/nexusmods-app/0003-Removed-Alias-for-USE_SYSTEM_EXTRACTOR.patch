@@ -1,0 +1,39 @@
+From 2c837cfc9a6059edd73b741436a6ca062ae6222a Mon Sep 17 00:00:00 2001
+From: Sewer56 <sewer56lol@googlemail.com>
+Date: Thu, 22 Aug 2024 13:00:48 +0100
+Subject: [PATCH 3/3] Removed: Alias for USE_SYSTEM_EXTRACTOR
+
+---
+ .../NexusMods.FileExtractor/Extractors/SevenZipExtractor.cs     | 2 +-
+ .../build/NexusMods.FileExtractor.targets                       | 2 +-
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/src/ArchiveManagement/NexusMods.FileExtractor/Extractors/SevenZipExtractor.cs b/src/ArchiveManagement/NexusMods.FileExtractor/Extractors/SevenZipExtractor.cs
+index 44ef136b..dd3a451c 100644
+--- a/src/ArchiveManagement/NexusMods.FileExtractor/Extractors/SevenZipExtractor.cs
++++ b/src/ArchiveManagement/NexusMods.FileExtractor/Extractors/SevenZipExtractor.cs
+@@ -226,7 +226,7 @@ private static string GetExtractorExecutable(IFileSystem fileSystem)
+     /// See https://github.com/Nexus-Mods/NexusMods.App/issues/1306 for details.
+     /// </remarks>
+     private const bool UseSystemExtractor =
+-#if NEXUSMODS_APP_USE_SYSTEM_EXTRACTOR || USE_SYSTEM_EXTRACTOR
++#if NEXUSMODS_APP_USE_SYSTEM_EXTRACTOR
+         true;
+ #else
+         false;
+diff --git a/src/ArchiveManagement/NexusMods.FileExtractor/build/NexusMods.FileExtractor.targets b/src/ArchiveManagement/NexusMods.FileExtractor/build/NexusMods.FileExtractor.targets
+index da677125..93229cd5 100644
+--- a/src/ArchiveManagement/NexusMods.FileExtractor/build/NexusMods.FileExtractor.targets
++++ b/src/ArchiveManagement/NexusMods.FileExtractor/build/NexusMods.FileExtractor.targets
+@@ -13,7 +13,7 @@
+     <_NativeRuntime Condition=" '$(_NativeRuntime)' == '' And '$(_IsWindows)' == 'true' And ('$(Prefer32Bit)' == 'true' Or '$(PlatformTarget)' == 'x86')">win-x86</_NativeRuntime>
+     <_NativeRuntime Condition=" '$(_NativeRuntime)' == '' And '$(_IsWindows)' == 'true' And ('$(Prefer32Bit)' == 'false' Or '$(PlatformTarget)' == 'x64')">win-x64</_NativeRuntime>
+ 
+-    <_UseSystemExtractor Condition="$([System.String]::new('$(DefineConstants)').Contains('USE_SYSTEM_EXTRACTOR')) or $([System.String]::new('$(DefineConstants)').Contains('NEXUSMODS_APP_USE_SYSTEM_EXTRACTOR'))">true</_UseSystemExtractor>
++    <_UseSystemExtractor Condition="$([System.String]::new('$(DefineConstants)').Contains('NEXUSMODS_APP_USE_SYSTEM_EXTRACTOR'))">true</_UseSystemExtractor>
+   </PropertyGroup>
+ 
+   <ItemGroup Condition="'$(_UseSystemExtractor)' == '' Or '$(_UseSystemExtractor)' == 'false'">
+-- 
+2.45.2
+
