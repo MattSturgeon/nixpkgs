@@ -47,6 +47,8 @@ buildDotnetModule rec {
   '';
 
   postPatch = ''
+    # We still need this for the tests, even though we build with NEXUSMODS_APP_USE_SYSTEM_EXTRACTOR
+    # See https://github.com/Nexus-Mods/NexusMods.App/issues/1836
     ln --force --symbolic "${lib.getExe _7zz}" src/ArchiveManagement/NexusMods.FileExtractor/runtimes/linux-x64/native/7zz
 
     # for some reason these tests fail (intermittently?) with a zero timestamp
@@ -59,7 +61,10 @@ buildDotnetModule rec {
     "--set APPIMAGE ${placeholder "out"}/bin/${meta.mainProgram}"
   ];
 
-  runtimeInputs = [ desktop-file-utils ];
+  runtimeInputs = [
+    _7zz
+    desktop-file-utils
+  ];
 
   runtimeDeps = [
     fontconfig
@@ -69,6 +74,25 @@ buildDotnetModule rec {
   ];
 
   executables = [ meta.mainProgram ];
+
+  # FIXME: should some of these go in dotnetTestFlags and/or dotnetFlags?
+  dotnetBuildFlags =
+    let
+      # From https://nexus-mods.github.io/NexusMods.App/developers/Contributing/#for-package-maintainers
+      constants = [
+        # Tell the app it is a distro package; affects wording in update prompts
+        "INSTALLATION_METHOD_PACKAGE_MANAGER"
+
+        # Don't include upstream's 7zz binary; we use the nixpkgs version
+        "NEXUSMODS_APP_USE_SYSTEM_EXTRACTOR"
+      ];
+    in
+    [
+      # From https://github.com/Nexus-Mods/NexusMods.App/blob/v0.5.3/src/NexusMods.App/app.pupnet.conf#L38
+      "--property:Version=${version}"
+      "--property:TieredCompilation=true"
+      "--property:DefineConstants=${lib.strings.concatStringsSep "%3B" constants}"
+    ];
 
   doCheck = true;
 
