@@ -34,7 +34,12 @@ buildDotnetModule rec {
   projectFile = "src/NexusMods.App/NexusMods.App.csproj";
   testProjectFile = "NexusMods.App.sln";
 
-  nativeBuildInputs = [ copyDesktopItems ];
+  nativeBuildInputs = [
+    copyDesktopItems
+    # FIXME: is this needed?
+    # FIXME: use finalAttrs
+    dotnet-sdk.icu
+  ];
 
   nugetDeps = ./deps.nix;
 
