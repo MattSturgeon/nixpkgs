@@ -55,6 +55,8 @@ buildDotnetModule (finalAttrs: {
 
   nativeBuildInputs = [
     copyDesktopItems
+    # FIXME: is this needed?
+    finalAttrs.dotnet-sdk.icu
     # TODO: Remove when patch isn't needed
     dos2unix
   ];
