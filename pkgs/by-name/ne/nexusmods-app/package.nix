@@ -12,6 +12,7 @@
   libX11,
   nexusmods-app,
   runCommand,
+  xdg-utils,
   pname ? "nexusmods-app",
 }:
 buildDotnetModule rec {
@@ -65,6 +66,7 @@ buildDotnetModule rec {
   runtimeInputs = [
     _7zz
     desktop-file-utils
+    xdg-utils
   ];
 
   runtimeDeps = [
