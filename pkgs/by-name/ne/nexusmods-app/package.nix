@@ -95,6 +95,7 @@ buildDotnetModule (finalAttrs: {
     # From https://github.com/Nexus-Mods/NexusMods.App/blob/v0.5.3/src/NexusMods.App/app.pupnet.conf#L38
     "--property:Version=${finalAttrs.version}"
     "--property:TieredCompilation=true"
+    "--property:PublishReadyToRun=true"
     "--property:DefineConstants=${lib.strings.concatStringsSep "%3B" constants}"
   ];
 
