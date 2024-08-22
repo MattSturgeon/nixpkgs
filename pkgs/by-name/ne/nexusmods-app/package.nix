@@ -82,7 +82,8 @@ buildDotnetModule (finalAttrs: {
   makeWrapperArgs = [
     "--prefix PATH : ${lib.makeBinPath finalAttrs.runtimeInputs}"
     # Make associating with nxm links work on Linux
-    "--set APPIMAGE ${placeholder "out"}/bin/NexusMods.App"
+    # FIXME: this may no longer be needed, testing without it
+    # "--set APPIMAGE ${placeholder "out"}/bin/NexusMods.App"
   ];
 
   runtimeInputs = [
