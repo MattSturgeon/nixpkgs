@@ -9,6 +9,7 @@
   fontconfig,
   lib,
   runCommand,
+  xdg-utils,
   pname ? "nexusmods-app",
 }:
 let
@@ -89,6 +90,7 @@ buildDotnetModule (finalAttrs: {
   runtimeInputs = [
     _7zz
     desktop-file-utils
+    xdg-utils
   ];
 
   executables = [ "NexusMods.App" ];
