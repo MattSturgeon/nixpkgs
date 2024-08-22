@@ -46,11 +46,6 @@ buildDotnetModule rec {
   dotnet-sdk = dotnetCorePackages.sdk_8_0;
   dotnet-runtime = dotnetCorePackages.runtime_8_0;
 
-  preConfigure = ''
-    substituteInPlace Directory.Build.props \
-      --replace '</PropertyGroup>' '<ErrorOnDuplicatePublishOutputFiles>false</ErrorOnDuplicatePublishOutputFiles></PropertyGroup>'
-  '';
-
   postPatch = ''
     # We still need this for the tests, even though we build with NEXUSMODS_APP_USE_SYSTEM_EXTRACTOR
     # See https://github.com/Nexus-Mods/NexusMods.App/issues/1836
