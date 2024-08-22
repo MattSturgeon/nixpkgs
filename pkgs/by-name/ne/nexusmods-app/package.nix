@@ -58,7 +58,8 @@ buildDotnetModule rec {
   makeWrapperArgs = [
     "--prefix PATH : ${lib.makeBinPath runtimeInputs}"
     # Make associating with nxm links work on Linux
-    "--set APPIMAGE ${placeholder "out"}/bin/${meta.mainProgram}"
+    # FIXME: this may no longer be needed, testing without it
+    # "--set APPIMAGE ${placeholder "out"}/bin/${meta.mainProgram}"
   ];
 
   runtimeInputs = [
