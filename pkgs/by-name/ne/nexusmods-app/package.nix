@@ -63,6 +63,8 @@ buildDotnetModule rec {
     dos2unix
   ];
 
+  nativeCheckInputs = [ _7zz ];
+
   nugetDeps = ./deps.nix;
 
   dotnet-sdk = dotnetCorePackages.sdk_8_0;
