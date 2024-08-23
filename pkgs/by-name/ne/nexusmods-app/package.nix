@@ -15,6 +15,16 @@
   xdg-utils,
   pname ? "nexusmods-app",
 }:
+let
+  # From https://nexus-mods.github.io/NexusMods.App/developers/Contributing/#for-package-maintainers
+  constants = [
+    # Tell the app it is a distro package; affects wording in update prompts
+    "INSTALLATION_METHOD_PACKAGE_MANAGER"
+
+    # Don't include upstream's 7zz binary; we use the nixpkgs version
+    "NEXUSMODS_APP_USE_SYSTEM_EXTRACTOR"
+  ];
+in
 buildDotnetModule rec {
   inherit pname;
   version = "0.5.3";
@@ -79,29 +89,19 @@ buildDotnetModule rec {
   executables = [ meta.mainProgram ];
 
   # FIXME: should some of these go in dotnetTestFlags and/or dotnetFlags?
-  dotnetBuildFlags =
-    let
-      # From https://nexus-mods.github.io/NexusMods.App/developers/Contributing/#for-package-maintainers
-      constants = [
-        # Tell the app it is a distro package; affects wording in update prompts
-        "INSTALLATION_METHOD_PACKAGE_MANAGER"
-
-        # Don't include upstream's 7zz binary; we use the nixpkgs version
-        "NEXUSMODS_APP_USE_SYSTEM_EXTRACTOR"
-      ];
-    in
-    [
-      # From https://github.com/Nexus-Mods/NexusMods.App/blob/v0.5.3/src/NexusMods.App/app.pupnet.conf#L38
-      "--property:Version=${version}"
-      "--property:TieredCompilation=true"
-      "--property:PublishReadyToRun=true"
-      "--property:DefineConstants=${lib.strings.concatStringsSep "%3B" constants}"
-    ];
+  dotnetBuildFlags = [
+    # From https://github.com/Nexus-Mods/NexusMods.App/blob/v0.5.3/src/NexusMods.App/app.pupnet.conf#L38
+    "--property:Version=${version}"
+    "--property:TieredCompilation=true"
+    "--property:PublishReadyToRun=true"
+    "--property:DefineConstants=${lib.strings.concatStringsSep "%3B" constants}"
+  ];
 
   doCheck = true;
 
   dotnetTestFlags = [
     "--environment=USER=nobody"
+    "--property:DefineConstants=${lib.strings.concatStringsSep "%3B" constants}"
     (
       "--filter="
       + lib.strings.concatStringsSep "&" (
