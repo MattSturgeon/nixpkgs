@@ -1,0 +1,55 @@
+From ce818bbb02ec05d2a06b79346dba0130e5532d2a Mon Sep 17 00:00:00 2001
+From: Sewer56 <sewer56lol@googlemail.com>
+Date: Thu, 22 Aug 2024 00:15:42 +0100
+Subject: [PATCH 2/3] Fixed: Consider additional possible system '7z' binaries.
+
+---
+ .../Extractors/SevenZipExtractor.cs           | 26 +++++++++++++++++--
+ 1 file changed, 24 insertions(+), 2 deletions(-)
+
+diff --git a/src/ArchiveManagement/NexusMods.FileExtractor/Extractors/SevenZipExtractor.cs b/src/ArchiveManagement/NexusMods.FileExtractor/Extractors/SevenZipExtractor.cs
+index e6d152b5..44ef136b 100644
+--- a/src/ArchiveManagement/NexusMods.FileExtractor/Extractors/SevenZipExtractor.cs
++++ b/src/ArchiveManagement/NexusMods.FileExtractor/Extractors/SevenZipExtractor.cs
+@@ -200,9 +200,16 @@ private static string GetExtractorExecutableFileName()
+ 
+     private static string GetExtractorExecutable(IFileSystem fileSystem)
+     {
+-        var fileName = GetExtractorExecutableFileName();
+-        if (UseSystemExtractor) return fileName;
++        if (UseSystemExtractor)
++        {
++            // Depending on the user's distro and package of choice, 7z
++            // may have different names, so we'll check for the common ones.
++            return !OSInformation.IsLinux
++                ? GetExtractorExecutableFileName() :
++                FindSystem7zOnLinux();
++        }
+ 
++        var fileName = GetExtractorExecutableFileName();
+         var directory = OSInformation.MatchPlatform(
+             onWindows: () => "runtimes/win-x64/native/",
+             onLinux: () => "runtimes/linux-x64/native/",
+@@ -224,4 +231,19 @@ private static string GetExtractorExecutable(IFileSystem fileSystem)
+ #else
+         false;
+ #endif
++    
++    private static string FindSystem7zOnLinux()
++    {
++        string[] potentialBinaryNames = ["7z", "7zz", "7zzs"];
++        var pathDirectories = Environment.GetEnvironmentVariable("PATH")!.Split(':');
++
++        foreach (var pathDir in pathDirectories)
++        foreach (var binaryName in potentialBinaryNames)
++        {
++            if (File.Exists(Path.Combine(pathDir, binaryName)))
++                return binaryName;
++        }
++
++        throw new Exception("Cannot find system 7z binary in PATH");
++    }
+ }
+-- 
+2.45.2
+

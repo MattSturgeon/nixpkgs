@@ -3,6 +3,7 @@
   buildDotnetModule,
   copyDesktopItems,
   desktop-file-utils,
+  dos2unix,
   dotnetCorePackages,
   fetchFromGitHub,
   fontconfig,
@@ -37,6 +38,14 @@ buildDotnetModule rec {
     hash = "sha256-vy7gc/pS29gphkWM/KezZxXDVsD5DV02b/72pPh2Y2c=";
   };
 
+  patches = [
+    # Backport fix for NEXUSMODS_APP_USE_SYSTEM_EXTRACTOR
+    # From https://github.com/Nexus-Mods/NexusMods.App/pull/1919
+    ./patches/0001-Fixed-Alias-USE_SYSTEM_EXTRACTOR-and-NEXUSMODS_APP_U.patch
+    ./patches/0003-Removed-Alias-for-USE_SYSTEM_EXTRACTOR.patch
+    ./patches/0002-Fixed-Consider-additional-possible-system-7z-binarie.patch
+  ];
+
   # If the whole solution is published, there seems to be a race condition where
   # it will sometimes publish the wrong version of a dependent assembly, for
   # example: Microsoft.Extensions.Hosting.dll 6.0.0 instead of 8.0.0.
@@ -50,6 +59,8 @@ buildDotnetModule rec {
     # FIXME: is this needed?
     # FIXME: use finalAttrs
     dotnet-sdk.icu
+    # TODO: Remove when patch isn't needed
+    dos2unix
   ];
 
   nugetDeps = ./deps.nix;
@@ -57,10 +68,14 @@ buildDotnetModule rec {
   dotnet-sdk = dotnetCorePackages.sdk_8_0;
   dotnet-runtime = dotnetCorePackages.runtime_8_0;
 
+  prePatch = ''
+    # TODO: Remove when patch isn't needed
+    dos2unix src/ArchiveManagement/NexusMods.FileExtractor/build/NexusMods.FileExtractor.targets
+  '';
+
   postPatch = ''
-    # We still need this for the tests, even though we build with NEXUSMODS_APP_USE_SYSTEM_EXTRACTOR
-    # See https://github.com/Nexus-Mods/NexusMods.App/issues/1836
-    ln --force --symbolic "${lib.getExe _7zz}" src/ArchiveManagement/NexusMods.FileExtractor/runtimes/linux-x64/native/7zz
+    # TODO: Remove when patch isn't needed
+    unix2dos src/ArchiveManagement/NexusMods.FileExtractor/build/NexusMods.FileExtractor.targets
 
     # for some reason these tests fail (intermittently?) with a zero timestamp
     touch tests/NexusMods.UI.Tests/WorkspaceSystem/*.verified.png
