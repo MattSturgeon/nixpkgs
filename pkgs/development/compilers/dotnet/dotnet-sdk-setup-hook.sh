@@ -4,8 +4,11 @@ export MSBUILDALWAYSOVERWRITEREADONLYFILES=1
 declare -Ag _nugetInputs
 
 addNugetInputs() {
-    if [[ -d "$1/share/nuget" ]]; then
+    if [[ -d $1/share/nuget ]]; then
         _nugetInputs[$1]=1
+        if [[ -d $1/share/nuget/packages ]]; then
+            addToSearchPathWithCustomDelimiter ";" NUGET_FALLBACK_PACKAGES "$1/share/nuget/packages"
+        fi
     fi
 }
 
@@ -16,16 +19,21 @@ _linkPackages() {
     local -r dest="$2"
     local dir
 
-    for x in "$src"/*/*; do
-        dir=$dest/$(basename "$(dirname "$x")")
-        mkdir -p "$dir"
-        ln -s "$x" "$dir"/
-    done
+    (
+        shopt -s nullglob
+        for x in "$src"/*/*; do
+            dir=$dest/$(basename "$(dirname "$x")")
+            mkdir -p "$dir"
+            ln -s "$x" "$dir"/
+        done
+    )
 }
 
 createNugetDirs() {
     nugetTemp=$PWD/.nuget-temp
-    export NUGET_PACKAGES=$nugetTemp/packages
+    # trailing slash required here:
+    # Microsoft.Managed.Core.targets(236,5): error : SourceRoot paths are required to end with a slash or backslash: '/build/.nuget-temp/packages'
+    export NUGET_PACKAGES=$nugetTemp/packages/
     nugetSource=$nugetTemp/source
     mkdir -p "$NUGET_PACKAGES" "$nugetSource"
 
@@ -39,10 +47,6 @@ createNugetDirs() {
 
 configureNuget() {
     for x in "${!_nugetInputs[@]}"; do
-        if [[ -d $x/share/nuget/packages ]]; then
-            addToSearchPathWithCustomDelimiter ";" NUGET_FALLBACK_PACKAGES "$x/share/nuget/packages"
-        fi
-
         if [[ -d $x/share/nuget/source ]]; then
             _linkPackages "$x/share/nuget/source" "$nugetSource"
         fi
@@ -68,6 +72,18 @@ configureNuget() {
                @lndir@/bin/lndir -silent "$x/share/nuget/source" "$NUGET_PACKAGES"
            fi
        done
+
+    fi
+
+    if [[ -n "${makeEmptyNupkgInPackages-}" ]]; then
+        (
+            shopt -s nullglob
+            for package in "$NUGET_PACKAGES"/*/*; do
+                version=$(basename "$package")
+                id=$(basename "$(dirname "$package")")
+                touch "$package/$id.$version.nupkg"
+            done
+        )
     fi
 }
 

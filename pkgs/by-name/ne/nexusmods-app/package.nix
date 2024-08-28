@@ -1,5 +1,6 @@
 {
   _7zz,
+  avalonia,
   buildDotnetModule,
   copyDesktopItems,
   desktop-file-utils,
@@ -65,6 +66,8 @@ buildDotnetModule rec {
 
   nativeCheckInputs = [ _7zz ];
 
+  buildInputs = [ avalonia ];
+
   nugetDeps = ./deps.nix;
 
   dotnet-sdk = dotnetCorePackages.sdk_8_0;
@@ -94,13 +97,6 @@ buildDotnetModule rec {
     _7zz
     desktop-file-utils
     xdg-utils
-  ];
-
-  runtimeDeps = [
-    fontconfig
-    libICE
-    libSM
-    libX11
   ];
 
   executables = [ meta.mainProgram ];
