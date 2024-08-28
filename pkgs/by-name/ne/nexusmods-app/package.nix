@@ -41,9 +41,9 @@ buildDotnetModule rec {
   patches = [
     # Backport fix for NEXUSMODS_APP_USE_SYSTEM_EXTRACTOR
     # From https://github.com/Nexus-Mods/NexusMods.App/pull/1919
-    ./patches/0001-Fixed-Alias-USE_SYSTEM_EXTRACTOR-and-NEXUSMODS_APP_U.patch
-    ./patches/0003-Removed-Alias-for-USE_SYSTEM_EXTRACTOR.patch
-    ./patches/0002-Fixed-Consider-additional-possible-system-7z-binarie.patch
+    ./0001-Fixed-Alias-USE_SYSTEM_EXTRACTOR-and-NEXUSMODS_APP_U.patch
+    ./0003-Removed-Alias-for-USE_SYSTEM_EXTRACTOR.patch
+    ./0002-Fixed-Consider-additional-possible-system-7z-binarie.patch
   ];
 
   # If the whole solution is published, there seems to be a race condition where
