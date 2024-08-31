@@ -7,6 +7,7 @@
   dotnetCorePackages,
   fetchFromGitHub,
   fontconfig,
+  imagemagick,
   lib,
   runCommand,
   xdg-utils,
@@ -60,6 +61,7 @@ buildDotnetModule (finalAttrs: {
     finalAttrs.dotnet-sdk.icu
     # TODO: Remove when patch isn't needed
     dos2unix
+    imagemagick # For resizing SVG icon in postInstall
   ];
 
   nugetDeps = ./deps.nix;
@@ -86,6 +88,32 @@ buildDotnetModule (finalAttrs: {
     # FIXME: this may no longer be needed, testing without it
     # "--set APPIMAGE ${placeholder "out"}/bin/NexusMods.App"
   ];
+
+  # FIXME: Decide if we should use pname (nexusmods-app) or id (com.nexusmods.app) in filenames
+  # Most desktop entries in nixpkgs seem to use pname, but is that just for historical reasons?
+  # Note: the appstream file lists the "desktop-id" launchable as "com.nexusmods.app.desktop"
+  # Other packages seem to interpolate `pname` in the install paths - should I use `finalAttrs.pname`?
+  postInstall = ''
+    # Desktop entry
+    install -D -m 444 -t $out/share/applications src/NexusMods.App/com.nexusmods.app.desktop
+    substituteInPlace $out/share/applications/com.nexusmods.app.desktop \
+      --replace-fail '${"$"}{INSTALL_EXEC}' "$out/bin/NexusMods.App"
+
+    # AppStream metadata
+    install -D -m 444 -t $out/share/metainfo src/NexusMods.App/com.nexusmods.app.metainfo.xml
+
+    # Icon
+    icon=src/NexusMods.App/icon.svg
+    install -D -m 444 -T $icon $out/share/icons/hicolor/scalable/apps/com.nexusmods.app.svg
+
+    # Bitmap icons
+    for i in 16 24 48 64 96 128 256 512; do
+      size=''${i}x''${i}
+      dir=$out/share/icons/hicolor/$size/apps
+      mkdir -p $dir
+      convert -background none -resize $size $icon $dir/com.nexusmods.app.png
+    done
+  '';
 
   runtimeInputs = [
     _7zz
