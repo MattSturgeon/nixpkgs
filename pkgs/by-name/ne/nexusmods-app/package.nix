@@ -25,14 +25,14 @@ let
 in
 buildDotnetModule (finalAttrs: {
   inherit pname;
-  version = "0.5.3";
+  version = "0.6.0";
 
   src = fetchFromGitHub {
     owner = "Nexus-Mods";
     repo = "NexusMods.App";
     rev = "v${finalAttrs.version}";
     fetchSubmodules = true;
-    hash = "sha256-vy7gc/pS29gphkWM/KezZxXDVsD5DV02b/72pPh2Y2c=";
+    hash = "sha256-8SnHHZSIaX4elQJPi832XGnntsS/+H38724PaTkQLhk=";
   };
 
   patches = [
@@ -125,7 +125,7 @@ buildDotnetModule (finalAttrs: {
 
   # FIXME: should some of these go in dotnetTestFlags and/or dotnetFlags?
   dotnetBuildFlags = [
-    # From https://github.com/Nexus-Mods/NexusMods.App/blob/v0.5.3/src/NexusMods.App/app.pupnet.conf#L38
+    # From https://github.com/Nexus-Mods/NexusMods.App/blob/v0.6.0/src/NexusMods.App/app.pupnet.conf#L38
     "--property:Version=${finalAttrs.version}"
     "--property:TieredCompilation=true"
     "--property:PublishReadyToRun=true"
