@@ -1,6 +1,8 @@
 {
   autoPatchelfHook,
   dotnetCorePackages,
+  dos2unix,
+  fetchpatch,
   fontconfig,
   lib,
   libICE,
@@ -16,6 +18,48 @@
   #   package.overrideAttrs (old: {
   #     buildInputs = old.buildInputs or [ ] ++ [ hello ];
   #   });
+
+  "Avalonia" =
+    package:
+    package.overrideAttrs (
+      old:
+      let
+        inherit (old) version;
+      in
+      # Versions between 11.1.0 and 11.2.0-beta1 (inclusive) need #16835
+      lib.optionalAttrs
+        (
+          builtins.compareVersions version "11.1.0" >= 0
+          && (lib.versionOlder version "11.2.0" || version == "11.2.0-beta1")
+        )
+        {
+          patches = [
+            (fetchpatch {
+              url = "https://github.com/AvaloniaUI/Avalonia/pull/16835.patch";
+              hash = "sha256-gJkCOHbfsydlgjavTgVNhOSUVQ79TEr6h4ETunAZWuw=";
+            })
+          ];
+
+          patchFlags = [
+            "--ignore-whitespace"
+            "--strip=3"
+          ];
+
+          prePatch = ''
+            cd build
+            dos2unix AvaloniaBuildTasks.targets
+          '';
+
+          postPatch = ''
+            unix2dos AvaloniaBuildTasks.targets
+            cd ..
+          '';
+
+          nativeBuildInputs = old.nativeBuildInputs or [ ] ++ [
+            dos2unix
+          ];
+        }
+    );
 
   "Avalonia.X11" =
     package:
