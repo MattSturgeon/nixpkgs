@@ -191,9 +191,13 @@ let
       ] ++ nixpkgsArgs.overlays or [] ++ overlays;
     });
     # This is only cross when we are already cross, otherwise local.
-    mkHybridPkgs = name: hybridAttrs: mkPkgs name {
-      ${if isNative then "localSystem" else "crossSystem"} = stdenv.hostPlatform.override hybridAttrs;
-    };
+    # For the case of "native cross", i.e. pkgsCross.gnu64 on a x86_64-linux system, we need to adjust **both**
+    # localSystem **and** crossSystem, otherwise they're out of sync.
+    mkHybridPkgs = name: hybridAttrs: mkPkgs name (let
+        newSystem = stdenv.hostPlatform.override hybridAttrs;
+      in { crossSystem = newSystem; }
+      // lib.optionalAttrs isNative { localSystem = newSystem; }
+    );
   in self: super: {
     # This maps each entry in lib.systems.examples to its own package
     # set. Each of these will contain all packages cross compiled for
