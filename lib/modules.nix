@@ -997,39 +997,77 @@ let
     else opt // { type = opt.type.substSubModules opt.options; options = []; };
 
 
-  /*
+  /**
+    Merge an option's definitions in a way that preserves option metadata for
+    individual attributes in the option value, such as priorities.
+
+    This does not account for all option semantics, such as readOnly.
+
+    # Type
+
+    ```
+    option -> attrsOf { highestPrio, value, definitions, files, definitionsWithLocations, isDefined }
+    ```
+  */
+  mergeAttrDefinitions = opt:
+    opt:
+    let
+      defsByAttr = zipAttrs (
+        concatLists (
+          concatMap (
+            { value, ... }@def:
+            map (mapAttrsToList (
+              k: value: {
+                ${k} = def // {
+                  inherit value;
+                };
+              }
+            )) (pushDownProperties value)
+          ) opt.definitionsWithLocations
+        )
+      );
+    in
+    assert opt.type.name == "attrsOf" || opt.type.name == "lazyAttrsOf";
+    mapAttrs (
+      k: v:
+      let
+        loc = opt.loc ++ [ k ];
+        res = mergeDefinitions loc opt.type.nestedTypes.elemType v;
+      in
+      {
+        value = builtins.addErrorContext "while evaluating the attribute `${lib.escapeNixIdentifier k}' of the option `${lib.showOption opt.loc}':" res.mergedValue;
+        inherit (res.defsFinal') highestPrio;
+        definitions = map (def: def.value) res.defsFinal;
+        files = map (def: def.file) res.defsFinal;
+        definitionsWithLocations = res.defsFinal;
+        inherit (res) isDefined;
+        __toString = _: lib.showOption loc;
+      }
+    ) defsByAttr;
+
+  /**
     Merge an option's definitions in a way that preserves the priority of the
     individual attributes in the option value.
 
     This does not account for all option semantics, such as readOnly.
 
-    Type:
-      option -> attrsOf { highestPrio, value }
+    This offers a subset of `mergeAttrDefinitions`.
+
+    # Type
+
+    ```
+    option -> attrsOf { highestPrio, value }
+    ```
   */
-  mergeAttrDefinitionsWithPrio = opt:
-        let
-            defsByAttr =
-              zipAttrs (
-                concatLists (
-                  concatMap
-                    ({ value, ... }@def:
-                      map
-                        (mapAttrsToList (k: value: { ${k} = def // { inherit value; }; }))
-                        (pushDownProperties value)
-                    )
-                    opt.definitionsWithLocations
-                )
-              );
-        in
-          assert opt.type.name == "attrsOf" || opt.type.name == "lazyAttrsOf";
-          mapAttrs
-                (k: v:
-                  let merging = mergeDefinitions (opt.loc ++ [k]) opt.type.nestedTypes.elemType v;
-                  in {
-                    value = merging.mergedValue;
-                    inherit (merging.defsFinal') highestPrio;
-                  })
-                defsByAttr;
+  mergeAttrDefinitionsWithPrio =
+    opt:
+    mapAttrs (
+      _:
+      { highestPrio, value, ... }:
+      {
+        inherit highestPrio value;
+      }
+    ) (mergeAttrDefinitions opt);
 
   /* Properties. */
 
@@ -1600,6 +1638,7 @@ private //
     importJSON
     importTOML
     mergeDefinitions
+    mergeAttrDefinitions
     mergeAttrDefinitionsWithPrio
     mergeOptionDecls  # should be private?
     mkAfter
