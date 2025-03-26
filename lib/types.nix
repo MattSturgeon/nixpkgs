@@ -57,6 +57,10 @@ let
     hasInfix
     isStringLike
     ;
+  inherit (lib.tables)
+    mkTable
+    isTable
+    ;
   inherit (lib.trivial)
     boolToString
     ;
@@ -834,6 +838,94 @@ rec {
           };
         };
       };
+
+    inherit (rec {
+      tableOf = tableWith {
+        attrsTypeFn = attrsOf;
+        alwaysProduceTable = true;
+      };
+
+      maybeTableOf = tableWith {
+        attrsTypeFn = attrsOf;
+        alwaysProduceTable = false;
+      };
+
+      lazyTableOf = tableWith {
+        attrsTypeFn = lazyAttrsOf;
+        alwaysProduceTable = true;
+      };
+
+      # FIXME: does lazy + maybe make sense?
+      # Isn't maybe inherently strict?
+      lazyMaybeTableOf = tableWith {
+        attrsTypeFn = lazyAttrsOf;
+        alwaysProduceTable = false;
+      };
+
+      # base impl (private)
+      tableWith =
+        {
+          alwaysProduceTable,
+          attrsTypeFn,
+        }:
+        elemType:
+        let
+          attrsType = attrsTypeFn elemType;
+          listType = listOf elemType;
+        in
+        mkOptionType {
+          name = "table";
+          description = "table, list, or " + attrsType.description;
+          descriptionClass = "composite";
+          check = x: isTable x || attrsType.check x || listType.check x;
+          merge =
+            loc: defs:
+            let
+              mergeDefsWithType =
+                type:
+                lib.pipe defs [
+                  # Split table defs into separate list + attrs defs
+                  (builtins.concatMap (
+                    def:
+                    if isTable def.value then
+                      [
+                        (def // { value = def.value.list; })
+                        (def // { value = def.value.attrs; })
+                      ]
+                    else
+                      [ def ]
+                    )
+                  )
+                  # Filter and merge definitions matching this type
+                  (filter (def: type.check def.value))
+                  (mergeDefinitions loc type)
+                ];
+              mergedList = mergeDefsWithType listType;
+              mergedAttrs = mergeDefsWithType attrsType;
+            in
+            if alwaysProduceTable || (mergedList.isDefined && mergedAttrs.isDefined) then
+              mkTable (
+                lib.optionalAttrs mergedList.isDefined { list = mergedList.mergedValue; }
+                // lib.optionalAttrs mergedAttrs.isDefined { attrs = mergedAttrs.mergedValue; }
+              )
+            else if mergedList.isDefined then
+              mergedList.mergedValue
+            else if mergedAttrs.isDefined then
+              mergedAttrs.mergedValue
+            else
+              throw "impossible: merge called without any matching definitions";
+          nestedTypes = {
+            listType = listType;
+            attrsType = attrsType;
+            inherit elemType;
+          };
+        };
+      })
+      tableOf
+      maybeTableOf
+      lazyTableOf
+      lazyMaybeTableOf
+      ;
 
     # A value produced by `lib.mkLuaInline`
     luaInline = mkOptionType {
