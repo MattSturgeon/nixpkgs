@@ -52,6 +52,7 @@ let
     lists = callLibs ./lists.nix;
     strings = callLibs ./strings.nix;
     stringsWithDeps = callLibs ./strings-with-deps.nix;
+    tables = callLibs ./tables.nix;
 
     # packaging
     customisation = callLibs ./customisation.nix;
@@ -151,6 +152,11 @@ let
       toInt toIntBase10 readPathsFromFile fileContents;
     inherit (self.stringsWithDeps) textClosureList textClosureMap
       noDepEntry fullDepEntry packEntry stringAfter;
+    inherit (self.tables)
+      isTable
+      mkTable
+      toTable
+      ;
     inherit (self.customisation) overrideDerivation makeOverridable
       callPackageWith callPackagesWith extendDerivation hydraJob
       makeScope makeScopeWithSplicing makeScopeWithSplicing'
