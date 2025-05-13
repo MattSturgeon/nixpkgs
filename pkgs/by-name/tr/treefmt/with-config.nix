@@ -15,10 +15,9 @@
   # Inputs
 
   `module`
-  : A treefmt module, configuring options that include:
-    - `name`: `String` (default `"treefmt-with-config"`)
-    - `settings`: `Module` (default `{ }`)
-    - `runtimeInputs`: `[Derivation]` (default `[ ]`)
+  : A treefmt module. See [options reference].
+
+  [options reference]: https://nixos.org/manual/nixpkgs/unstable#sec-treefmt-options-reference
 */
 module:
 let

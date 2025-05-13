@@ -36,6 +36,9 @@ buildGoModule rec {
     buildConfig = callPackage ./build-config.nix { };
 
     tests = callPackages ./tests.nix { };
+
+    # Documentation for options declared in `treefmt.evalConfig` configurations
+    optionsDoc = callPackages ./options-doc.nix { };
   };
 
   meta = {

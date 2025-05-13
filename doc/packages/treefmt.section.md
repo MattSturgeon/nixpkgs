@@ -4,3 +4,13 @@
 
 The `treefmt` package provides functions for configuring treefmt using the module system.
 
+## Options Reference {#sec-treefmt-options-reference}
+
+The following attributes can be passed to `treefmt.withConfig` or `treefmt.evalConfig`:
+
+```{=include=} options
+id-prefix: opt-treefmt-
+list-id: configuration-variable-list
+source: ../treefmt-options.json
+```
+

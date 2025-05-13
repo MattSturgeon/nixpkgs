@@ -360,6 +360,9 @@
   "chap-stdenv": [
     "index.html#chap-stdenv"
   ],
+  "sec-treefmt-options-reference": [
+    "index.html#sec-treefmt-options-reference"
+  ],
   "sec-using-stdenv": [
     "index.html#sec-using-stdenv"
   ],
