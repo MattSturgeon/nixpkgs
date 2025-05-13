@@ -4,6 +4,22 @@
   treefmt,
   makeBinaryWrapper,
 }:
+
+/**
+  Wrap treefmt, configured using structured settings.
+
+  # Type
+
+  ```
+  AttrSet -> Derivation
+  ```
+
+  # Inputs
+
+  - `name`: `String` (default `"treefmt-configured"`)
+  - `settings`: `Module` (default `{ }`)
+  - `runtimeInputs`: `[Derivation]` (default `[ ]`)
+*/
 {
   name ? "treefmt-with-config",
   settings ? { },

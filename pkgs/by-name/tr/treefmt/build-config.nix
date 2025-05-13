@@ -2,6 +2,16 @@
   lib,
   formats,
 }:
+
+/**
+  Build a treefmt config file from structured settings.
+
+  # Type
+
+  ```
+  Module -> Derivation
+  ```
+*/
 module:
 let
   settingsFormat = formats.toml { };
