@@ -32,6 +32,7 @@ buildGoModule rec {
   passthru = {
     # Utility functions and wrappers
     withConfig = callPackage ./with-config.nix { };
+    evalConfig = callPackage ./eval-config.nix { };
     buildConfig = callPackage ./build-config.nix { };
 
     tests = callPackages ./tests.nix { };
