@@ -99,6 +99,9 @@
   "sec-build-helper-extendMkDerivation": [
     "index.html#sec-build-helper-extendMkDerivation"
   ],
+  "sec-functions-library-treefmt": [
+    "index.html#sec-functions-library-treefmt"
+  ],
   "sec-inkscape": [
     "index.html#sec-inkscape"
   ],

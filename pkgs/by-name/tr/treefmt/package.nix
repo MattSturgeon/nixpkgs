@@ -40,6 +40,9 @@ buildGoModule rec {
 
     # Documentation for options declared in `treefmt.evalConfig` configurations
     optionsDoc = callPackages ./options-doc.nix { };
+
+    # Documentation for functions defined in `./functions.nix`
+    functionsDoc = callPackages ./functions-doc.nix { };
   };
 
   meta = {

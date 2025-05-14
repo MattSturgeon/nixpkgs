@@ -4,6 +4,10 @@
 
 The `treefmt` package provides functions for configuring treefmt using the module system.
 
+```{=include=} sections auto-id-prefix=auto-generated-treefmt-functions
+treefmt-functions.section.md
+```
+
 ## Options Reference {#sec-treefmt-options-reference}
 
 The following attributes can be passed to `treefmt.withConfig` or `treefmt.evalConfig`:
