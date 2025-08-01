@@ -5,6 +5,7 @@
   desktop-file-utils,
   dotnetCorePackages,
   fetchgit,
+  fetchurl,
   imagemagick,
   lib,
   xdg-utils,
@@ -12,6 +13,13 @@
   pname ? "nexusmods-app",
 }:
 let
+  # TODO: update script
+  game-hashes-tag = "ve6c126e4310a5f04";
+  game-hashes = fetchurl {
+    url = "https://github.com/Nexus-Mods/game-hashes/releases/download/${game-hashes-tag}/game_hashes_db.zip";
+    hash = "sha256-06YlxR5MMmDkGQbOtZgC39HLFazi6f58n4uobAD1dUc=";
+  };
+
   # From https://nexus-mods.github.io/NexusMods.App/developers/Contributing/#for-package-maintainers
   constants = [
     # Tell the app it is a distro package; affects wording in update prompts
@@ -66,6 +74,10 @@ buildDotnetModule (finalAttrs: {
     # Assertion assumes version is set to 0.0.1
     substituteInPlace tests/NexusMods.Telemetry.Tests/TrackingDataSenderTests.cs \
       --replace-fail 'cra_ct=v0.0.1' 'cra_ct=v${finalAttrs.version}'
+
+    # Use a pinned version of the game hashes db
+    substituteInPlace src/NexusMods.Games.FileHashes/NexusMods.Games.FileHashes.csproj \
+      --replace-fail '$(BaseIntermediateOutputPath)games_hashes_db.zip' '${game-hashes}'
   '';
 
   makeWrapperArgs = [
@@ -139,10 +151,10 @@ buildDotnetModule (finalAttrs: {
   disabledTests = [
     # Fails attempting to download game hashes DB from github:
     # HttpRequestException : Resource temporarily unavailable (github.com:443)
-    "NexusMods.DataModel.SchemaVersions.Tests.LegacyDatabaseSupportTests.TestDatabase"
-    "NexusMods.DataModel.SchemaVersions.Tests.MigrationSpecificTests.TestsFor_0001_ConvertTimestamps.OldTimestampsAreInRange"
-    "NexusMods.DataModel.SchemaVersions.Tests.MigrationSpecificTests.TestsFor_0003_FixDuplicates.No_Duplicates"
-    "NexusMods.DataModel.SchemaVersions.Tests.MigrationSpecificTests.TestsFor_0004_RemoveGameFiles.Test"
+    # "NexusMods.DataModel.SchemaVersions.Tests.LegacyDatabaseSupportTests.TestDatabase"
+    # "NexusMods.DataModel.SchemaVersions.Tests.MigrationSpecificTests.TestsFor_0001_ConvertTimestamps.OldTimestampsAreInRange"
+    # "NexusMods.DataModel.SchemaVersions.Tests.MigrationSpecificTests.TestsFor_0003_FixDuplicates.No_Duplicates"
+    # "NexusMods.DataModel.SchemaVersions.Tests.MigrationSpecificTests.TestsFor_0004_RemoveGameFiles.Test"
 
     # Fails attempting to fetch SMAPI version data from github:
     # https://github.com/erri120/smapi-versions/raw/main/data/game-smapi-versions.json
