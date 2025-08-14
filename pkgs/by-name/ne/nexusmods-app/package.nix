@@ -9,14 +9,17 @@
   imagemagick,
   lib,
   xdg-utils,
+  writeShellScriptBin,
   nix-update-script,
+  gitUpdater,
   pname ? "nexusmods-app",
 }:
 let
   # TODO: update script
+  game-hashes-repo = "https://github.com/Nexus-Mods/game-hashes";
   game-hashes-tag = "ve6c126e4310a5f04";
   game-hashes = fetchurl {
-    url = "https://github.com/Nexus-Mods/game-hashes/releases/download/${game-hashes-tag}/game_hashes_db.zip";
+    url = "${game-hashes-repo}/releases/download/${game-hashes-tag}/game_hashes_db.zip";
     hash = "sha256-06YlxR5MMmDkGQbOtZgC39HLFazi6f58n4uobAD1dUc=";
   };
 
