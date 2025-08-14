@@ -204,7 +204,12 @@ buildDotnetModule (finalAttrs: {
     };
   };
 
-  passthru.updateScript = nix-update-script { };
+  passthru.updateScript = writeShellScriptBin "update.sh" ''
+    ${lib.escapeShellArgs (nix-update-script { })}
+    # TODO: update game-hashes-tag
+  '';
+
+  passthru.game-hashes = game-hashes;
 
   meta = {
     mainProgram = "NexusMods.App";
