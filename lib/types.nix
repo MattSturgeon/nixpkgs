@@ -1261,18 +1261,46 @@ rec {
         optionDescriptionPhrase (class: class == "noun" || class == "conjunction") elemType
       }";
       descriptionClass = "conjunction";
-      check = x: x == null || elemType.check x;
-      merge =
-        loc: defs:
-        let
-          nulls = filter (def: def.value == null) defs;
-        in
-        if nulls == [ ] then
-          elemType.merge loc defs
-        else if length nulls == length defs then
-          null
-        else
-          throw "The option `${showOption loc}` is defined both null and not null, in ${showFiles (getFiles defs)}.";
+      check = {
+        __functor = _self: x: x == null || elemType.check x;
+        isV2MergeCoherent = true;
+      };
+      merge = {
+        __functor =
+          self: loc: defs:
+          let
+            nulls = filter (def: def.value == null) defs;
+          in
+          if nulls == [ ] then
+            elemType.merge loc defs
+          else if length nulls == length defs then
+            null
+          else
+            throw "The option `${showOption loc}` is defined both null and not null, in ${showFiles (getFiles defs)}.";
+        v2 =
+          { loc, defs }:
+          let
+            nulls = filter (def: def.value == null) defs;
+          in
+          if nulls == [ ] then
+            {
+              headError = null;
+              value = elemType.merge loc defs;
+              valueMeta = { };
+            }
+          else if length nulls == length defs then
+            {
+              headError = null;
+              value = null;
+              valueMeta = { };
+            }
+          else
+            {
+              headError = null;
+              value = throw "The option `${showOption loc}` is defined both null and not null, in ${showFiles (getFiles defs)}.";
+              valueMeta = { };
+            };
+      };
       emptyValue = {
         value = null;
       };
