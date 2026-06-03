@@ -36,6 +36,7 @@ let
     imap1
     last
     length
+    partition
     tail
     ;
   inherit (lib.attrsets)
@@ -1261,18 +1262,52 @@ rec {
         optionDescriptionPhrase (class: class == "noun" || class == "conjunction") elemType
       }";
       descriptionClass = "conjunction";
-      check = x: x == null || elemType.check x;
-      merge =
-        loc: defs:
-        let
-          nulls = filter (def: def.value == null) defs;
-        in
-        if nulls == [ ] then
-          elemType.merge loc defs
-        else if length nulls == length defs then
-          null
-        else
-          throw "The option `${showOption loc}` is defined both null and not null, in ${showFiles (getFiles defs)}.";
+      check = {
+        __functor = _self: x: x == null || elemType.check x;
+        isV2MergeCoherent = true;
+      };
+      merge = {
+        __functor =
+          self: loc: defs:
+          let
+            inherit (self.v2 { inherit loc defs; }) headError value;
+          in
+          throwIf (headError.causedByMixedNulls or false) headError.message value;
+        v2 =
+          { loc, defs }:
+          let
+            nulls = partition (def: def.value == null) defs;
+            checkedAndMerged =
+              if elemType.merge ? v2 then
+                checkV2MergeCoherence loc elemType (
+                  elemType.merge.v2 {
+                    inherit loc;
+                    defs = nulls.wrong;
+                  }
+                )
+              else
+                {
+                  value = elemType.merge loc nulls.wrong;
+                  headError = checkDefsForError elemType.check loc nulls.wrong;
+                  valueMeta = { };
+                };
+          in
+          if nulls.right == [ ] then
+            checkedAndMerged
+          else
+            {
+              headError =
+                if nulls.wrong == [ ] then
+                  null
+                else
+                  {
+                    message = "The option `${showOption loc}` is defined both null and not null, in ${showFiles (getFiles defs)}.";
+                    causedByMixedNulls = true;
+                  };
+              value = null;
+              valueMeta = optionalAttrs (nulls.wrong != [ ]) checkedAndMerged.valueMeta;
+            };
+      };
       emptyValue = {
         value = null;
       };
